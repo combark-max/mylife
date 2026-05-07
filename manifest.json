@@ -1,0 +1,16 @@
+{
+  "name": "明‘ Llfe - 일기장",
+  "short_name": "明‘ Llfe",
+  "description": "오프라인에서도 동작하는 개인 일기장",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1016",
+  "theme_color": "#0b1016",
+  "lang": "ko",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+
