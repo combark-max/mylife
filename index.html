@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>나의 일기장</title>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0b1016" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <style>
+      :root {
+        --font: system-ui, -apple-system, Segoe UI, sans-serif;
+        --radius: 14px;
+        --radius-lg: 18px;
+        --shadow: 0 16px 50px rgba(0, 0, 0, 0.22);
+
+        --bg: #0b1016;
+        --panel: rgba(18, 24, 34, 0.75);
+        --panel-solid: #121a26;
+        --text: #eef2f7;
+        --muted: #94a3b8;
+        --border: rgba(238, 242, 247, 0.08);
+        --accent: #4aa8ff;
+        --accent-contrast: #08111b;
+        --danger: #ff5c7a;
+        --focus: rgba(74, 168, 255, 0.3);
+      }
+
+      html[data-theme="light"] {
+        --bg: #f6f7fb;
+        --panel: rgba(255, 255, 255, 0.78);
+        --panel-solid: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: rgba(15, 23, 42, 0.08);
+        --accent: #1976ff;
+        --accent-contrast: #ffffff;
+        --danger: #e11d48;
+        --focus: rgba(25, 118, 255, 0.25);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--text);
+        background: radial-gradient(1000px 600px at 20% 10%, rgba(74, 168, 255, 0.16), transparent 60%),
+          radial-gradient(900px 560px at 80% 70%, rgba(225, 29, 72, 0.12), transparent 55%), var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      input,
+      textarea,
+      select,
+      button {
+        font-family: var(--font);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: rgba(10, 14, 20, 0.55);
+        backdrop-filter: blur(16px);
+      }
+
+      html[data-theme="light"] .app-header {
+        background: rgba(246, 247, 251, 0.6);
+      }
+
+      .app-header__left,
+      .app-header__right {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .app-title {
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .badge {
+        font-size: 0.75rem;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .badge.is-saving {
+        color: var(--text);
+        border-color: rgba(74, 168, 255, 0.35);
+        background: rgba(74, 168, 255, 0.12);
+      }
+
+      .badge.is-error {
+        color: var(--text);
+        border-color: rgba(225, 29, 72, 0.35);
+        background: rgba(225, 29, 72, 0.12);
+      }
+
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .icon-btn:focus-visible,
+      .btn:focus-visible,
+      .select:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+
+      .icon-menu {
+        background: linear-gradient(var(--text), var(--text)) 0 4px/18px 2px no-repeat,
+          linear-gradient(var(--text), var(--text)) 0 8px/18px 2px no-repeat,
+          linear-gradient(var(--text), var(--text)) 0 12px/18px 2px no-repeat;
+        border-radius: 2px;
+      }
+
+      .icon-theme {
+        border-radius: 999px;
+        border: 2px solid var(--text);
+        box-sizing: border-box;
+        position: relative;
+      }
+
+      .icon-theme::after {
+        content: "";
+        position: absolute;
+        inset: 2px;
+        border-radius: 999px;
+        background: var(--text);
+        clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 1.05rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.08s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        user-select: none;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn-small {
+        padding: 0.46rem 0.8rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: var(--accent-contrast);
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.05);
+      }
+
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: var(--border);
+        color: var(--text);
+      }
+
+      .btn-ghost:hover {
+        border-color: rgba(148, 163, 184, 0.35);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .btn-danger {
+        background: rgba(225, 29, 72, 0.12);
+        border-color: rgba(225, 29, 72, 0.2);
+        color: var(--text);
+      }
+
+      .btn-danger:hover {
+        background: rgba(225, 29, 72, 0.16);
+        border-color: rgba(225, 29, 72, 0.35);
+      }
+
+      .app {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .sidebar,
+      .editor {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .sidebar {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-height: calc(100vh - 160px);
+      }
+
+      .sidebar__top {
+        padding: 0.95rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .sidebar__list {
+        overflow: auto;
+        padding: 0.35rem;
+      }
+
+      .sidebar__bottom {
+        padding: 0.8rem 0.95rem;
+        border-top: 1px solid var(--border);
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .sidebar-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .file-btn {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .file-btn input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .hint {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .filters {
+        margin-top: 0.65rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .select {
+        width: 100%;
+        padding: 0.55rem 0.75rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+      }
+
+      html[data-theme="light"] .select {
+        background: rgba(15, 23, 42, 0.03);
+      }
+
+      .field {
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .field--search input,
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 0.68rem 0.78rem;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+      }
+
+      html[data-theme="light"] .field input,
+      html[data-theme="light"] .field textarea,
+      html[data-theme="light"] .field--search input {
+        background: rgba(15, 23, 42, 0.03);
+      }
+
+      .field textarea {
+        resize: vertical;
+        min-height: 45vh;
+      }
+
+      .label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .field--grow {
+        flex: 1;
+      }
+
+      .tag-chips {
+        margin-top: 0.65rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.36rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 0.82rem;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .chip.is-active {
+        color: var(--text);
+        border-color: rgba(74, 168, 255, 0.35);
+        background: rgba(74, 168, 255, 0.12);
+      }
+
+      .entry-row {
+        width: 100%;
+        text-align: left;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        padding: 0.85rem 0.85rem;
+        display: grid;
+        gap: 0.3rem;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .entry-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(148, 163, 184, 0.18);
+      }
+
+      .entry-row.is-active {
+        background: rgba(74, 168, 255, 0.1);
+        border-color: rgba(74, 168, 255, 0.35);
+      }
+
+      .entry-row__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .entry-row__title {
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .entry-row__excerpt {
+        font-size: 0.9rem;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .entry-row__tags {
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .tag {
+        font-size: 0.72rem;
+        padding: 0.12rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      .editor {
+        min-height: calc(100vh - 160px);
+      }
+
+      .editor__inner {
+        padding: 1rem;
+        display: grid;
+        gap: 0.8rem;
+      }
+
+      .editor__meta {
+        display: grid;
+        grid-template-columns: 170px 170px 1fr;
+        gap: 0.75rem;
+        align-items: end;
+      }
+
+      .title-input {
+        font-size: 1.2rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+
+      .content-input {
+        font-size: 1rem;
+        line-height: 1.75;
+      }
+
+      .editor__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-top: 0.2rem;
+      }
+
+      .editor__footer-left,
+      .editor__footer-right {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .empty {
+        padding: 2.2rem 1.2rem;
+        text-align: center;
+        display: grid;
+        place-items: center;
+        min-height: calc(100vh - 160px);
+      }
+
+      .empty h2 {
+        margin: 0 0 0.3rem;
+        letter-spacing: -0.03em;
+      }
+
+      .empty p {
+        margin: 0 0 1.2rem;
+        color: var(--muted);
+        max-width: 36rem;
+      }
+
+      .app-footer {
+        padding: 1.4rem 1rem 2rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .lock {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        padding: 1.2rem;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(10px);
+      }
+
+      .lock__card {
+        width: min(520px, 100%);
+        border-radius: 22px;
+        border: 1px solid var(--border);
+        background: var(--panel-solid);
+        box-shadow: var(--shadow);
+        padding: 1.1rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .lock__title {
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        font-size: 1.15rem;
+      }
+
+      .lock__title--small {
+        font-size: 1rem;
+      }
+
+      .lock__desc {
+        margin: -0.4rem 0 0.2rem;
+        color: var(--muted);
+      }
+
+      .lock__actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+
+      .lock__divider {
+        height: 1px;
+        background: var(--border);
+        margin: 0.4rem 0;
+      }
+
+      .photo {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.02);
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      html[data-theme="light"] .photo {
+        background: rgba(15, 23, 42, 0.02);
+      }
+
+      .photo__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+      }
+
+      .photo__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        gap: 0.6rem;
+      }
+
+      .photo-item {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        aspect-ratio: 1 / 1;
+      }
+
+      .photo-item__img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .photo-item__remove {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.55);
+        color: white;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: fixed;
+          z-index: 30;
+          left: 1rem;
+          right: 1rem;
+          top: 64px;
+          bottom: 1rem;
+          min-height: auto;
+          max-height: none;
+          transform: translateY(-8px) scale(0.99);
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+          transition: transform 0.18s ease, opacity 0.18s ease, visibility 0.18s ease;
+        }
+
+        .sidebar.is-open {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+          visibility: visible;
+          pointer-events: auto;
+        }
+
+        .editor {
+          min-height: auto;
+        }
+
+        .editor__meta {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .editor__meta {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="lock" id="lockScreen" hidden>
+      <div class="lock__card" role="dialog" aria-modal="true" aria-label="일기장 잠금">
+        <div class="lock__title">잠긴 일기장</div>
+        <p class="lock__desc">비밀번호를 입력하면 열립니다.</p>
+
+        <label class="field">
+          <span class="label">비밀번호</span>
+          <input id="unlockPassword" type="password" autocomplete="current-password" />
+        </label>
+
+        <div class="lock__actions">
+          <button type="button" class="btn btn-primary" id="unlockBtn">잠금 해제</button>
+          <button type="button" class="btn btn-ghost" id="resetAppBtn" title="암호를 모르면 데이터는 복구할 수 없어요.">
+            초기화
+          </button>
+        </div>
+
+        <p class="hint" id="lockHint">처음이라면 아래에서 비밀번호를 설정하세요.</p>
+
+        <div class="lock__divider"></div>
+
+        <div class="lock__title lock__title--small">새 비밀번호 설정</div>
+        <label class="field">
+          <span class="label">새 비밀번호</span>
+          <input id="setPassword1" type="password" autocomplete="new-password" />
+        </label>
+        <label class="field">
+          <span class="label">새 비밀번호 확인</span>
+          <input id="setPassword2" type="password" autocomplete="new-password" />
+        </label>
+        <button type="button" class="btn btn-ghost" id="setPasswordBtn">비밀번호 설정</button>
+
+        <p class="muted" style="margin: 0.8rem 0 0">
+          비밀번호를 잊으면 복구할 수 없어요. 꼭 기억하세요.
+        </p>
+      </div>
+    </div>
+
+    <header class="app-header">
+      <div class="app-header__left">
+        <button type="button" class="icon-btn" id="sidebarToggle" aria-label="목록 열기">
+          <span class="icon icon-menu" aria-hidden="true"></span>
+        </button>
+        <a class="app-title" href="#" aria-label="나의 일기장">나의 일기장</a>
+        <span class="badge" id="saveBadge" aria-live="polite">저장됨</span>
+      </div>
+
+      <div class="app-header__right">
+        <button type="button" class="btn btn-ghost" id="newEntryBtn">새 일기</button>
+        <button type="button" class="btn btn-ghost" id="lockBtn" title="잠금">잠금</button>
+        <button type="button" class="icon-btn" id="themeToggle" aria-label="테마 전환">
+          <span class="icon icon-theme" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app" id="appRoot">
+      <aside class="sidebar" id="sidebar" aria-label="일기 목록">
+        <div class="sidebar__top">
+          <label class="field field--search">
+            <span class="sr-only">검색</span>
+            <input id="searchInput" type="search" placeholder="검색 (제목/내용/태그)" autocomplete="off" />
+          </label>
+
+          <div class="filters" aria-label="필터">
+            <select id="sortSelect" class="select" aria-label="정렬">
+              <option value="updated-desc">최근 수정</option>
+              <option value="date-desc">날짜 내림차순</option>
+              <option value="date-asc">날짜 오름차순</option>
+              <option value="created-desc">최근 작성</option>
+            </select>
+            <button type="button" class="btn btn-ghost btn-small" id="clearFiltersBtn">초기화</button>
+          </div>
+
+          <div class="tag-chips" id="tagChips" aria-label="태그 필터"></div>
+        </div>
+
+        <div class="sidebar__list" id="entryList" role="list"></div>
+
+        <div class="sidebar__bottom">
+          <div class="sidebar-actions">
+            <button type="button" class="btn btn-ghost btn-small" id="exportBtn">내보내기</button>
+            <label class="btn btn-ghost btn-small file-btn">
+              가져오기
+              <input id="importInput" type="file" accept="application/json" />
+            </label>
+          </div>
+          <p class="hint">이 일기장은 브라우저에만 저장됩니다.</p>
+        </div>
+      </aside>
+
+      <section class="editor" aria-label="일기 편집기">
+        <div class="editor__inner" id="editorInner">
+          <div class="editor__meta">
+            <label class="field">
+              <span class="label">날짜</span>
+              <input id="dateInput" type="date" />
+            </label>
+
+            <label class="field">
+              <span class="label">기분</span>
+              <select id="moodSelect" class="select">
+                <option value="🙂">🙂 보통</option>
+                <option value="😄">😄 좋음</option>
+                <option value="😌">😌 편안</option>
+                <option value="😐">😐 무덤덤</option>
+                <option value="😢">😢 슬픔</option>
+                <option value="😡">😡 화남</option>
+                <option value="😴">😴 피곤</option>
+              </select>
+            </label>
+
+            <label class="field field--grow">
+              <span class="label">태그</span>
+              <input id="tagsInput" type="text" placeholder="예: 일상, 공부, 운동" autocomplete="off" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="sr-only">제목</span>
+            <input id="titleInput" class="title-input" type="text" placeholder="제목" autocomplete="off" />
+          </label>
+
+          <label class="field">
+            <span class="sr-only">내용</span>
+            <textarea id="contentInput" class="content-input" placeholder="오늘은 어떤 하루였나요?"></textarea>
+          </label>
+
+          <div class="photo">
+            <div class="photo__top">
+              <div class="label">사진</div>
+              <label class="btn btn-ghost btn-small file-btn">
+                사진 추가
+                <input id="photoInput" type="file" accept="image/*" multiple />
+              </label>
+            </div>
+            <div class="photo__grid" id="photoGrid" aria-label="첨부된 사진"></div>
+            <p class="hint">사진은 기기(브라우저)에만 저장됩니다.</p>
+          </div>
+
+          <div class="editor__footer">
+            <div class="editor__footer-left">
+              <button type="button" class="btn btn-ghost btn-small" id="duplicateBtn">복제</button>
+              <button type="button" class="btn btn-danger btn-small" id="deleteBtn">삭제</button>
+            </div>
+            <div class="editor__footer-right">
+              <span class="muted" id="metaText">—</span>
+              <button type="button" class="btn btn-primary" id="saveBtn">저장</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty" id="emptyState" hidden>
+          <h2>일기를 시작해볼까요?</h2>
+          <p>왼쪽에서 선택하거나, 오른쪽 위의 “새 일기”를 눌러 작성하세요.</p>
+          <button type="button" class="btn btn-primary" id="emptyNewBtn">새 일기 만들기</button>
+        </div>
+      </section>
+    </main>
+
+    <template id="entryRowTemplate">
+      <button type="button" class="entry-row" role="listitem">
+        <div class="entry-row__top">
+          <span class="entry-row__date"></span>
+          <span class="entry-row__mood" aria-hidden="true"></span>
+        </div>
+        <div class="entry-row__title"></div>
+        <div class="entry-row__excerpt"></div>
+        <div class="entry-row__tags"></div>
+      </button>
+    </template>
+
+    <template id="photoItemTemplate">
+      <div class="photo-item">
+        <img class="photo-item__img" alt="" loading="lazy" />
+        <button type="button" class="photo-item__remove" aria-label="사진 제거">×</button>
+      </div>
+    </template>
+
+    <footer class="app-footer">
+      <p>© <span id="year"></span> 나의 일기장</p>
+    </footer>
+
+    <script>
+      /**
+       * 나의 일기장 (로컬 저장 버전)
+       * - 저장 위치: localStorage (브라우저)
+       * - 주의: 시크릿/개인정보가 민감하면 공용 PC에서 사용하지 마세요.
+       */
+
+      const STORAGE_KEY = "my-diary.v1";
+      const ENC_KEY = "my-diary.enc.v1";
+      const ENC_META_KEY = "my-diary.enc.meta.v1";
+      const THEME_KEY = "my-diary.theme";
+      const IDB_NAME = "my-diary-idb";
+      const IDB_VERSION = 1;
+      const IDB_PHOTO_STORE = "photos";
+
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+      function uid() {
+        if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
+        return `id_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
+
+      function formatKoreanDate(iso) {
+        if (!iso) return "—";
+        const [y, m, d] = iso.split("-").map((v) => Number(v));
+        if (!y || !m || !d) return iso;
+        return `${y}.${String(m).padStart(2, "0")}.${String(d).padStart(2, "0")}`;
+      }
+
+      function nowISO() {
+        return new Date().toISOString();
+      }
+
+      function parseTags(text) {
+        return String(text || "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .map((t) => t.replace(/^#/, ""))
+          .filter((t, idx, arr) => arr.indexOf(t) === idx);
+      }
+
+      function tagsToText(tags) {
+        return (tags || []).join(", ");
+      }
+
+      function safeJsonParse(text, fallback) {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return fallback;
+        }
+      }
+
+      function defaultState() {
+        return { entries: [], selectedId: null, ui: { search: "", tag: null, sort: "updated-desc" } };
+      }
+
+      function bufToB64(buf) {
+        const bytes = new Uint8Array(buf);
+        let s = "";
+        for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+        return btoa(s);
+      }
+
+      function b64ToBuf(b64) {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes.buffer;
+      }
+
+      function canonicalizePassword(pw) {
+        // 모바일 키보드/자동완성에서 실수로 붙는 공백/유니코드 차이를 줄이기 위한 정규화
+        // (기존에 공백을 포함해 비밀번호를 설정한 경우는 예외일 수 있지만, 대부분의 사용자 입력 실수를 방지합니다.)
+        return String(pw ?? "")
+          .normalize("NFKC")
+          .trim();
+      }
+
+      function passwordCandidates(input) {
+        const raw = String(input ?? "");
+        const list = [
+          raw,
+          raw.trim(),
+          raw.normalize("NFKC"),
+          raw.normalize("NFKC").trim(),
+          raw.normalize("NFC"),
+          raw.normalize("NFC").trim(),
+        ];
+        // 중복 제거 + 빈 문자열 제거
+        return Array.from(new Set(list)).filter((s) => s.length > 0);
+      }
+
+      async function deriveAesKey(password, salt, iterations = 210_000) {
+        const enc = new TextEncoder();
+        const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+        return await crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+          baseKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["encrypt", "decrypt"]
+        );
+      }
+
+      async function encryptJson(password, data) {
+        const enc = new TextEncoder();
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const iterations = 210_000;
+        const key = await deriveAesKey(password, salt, iterations);
+        const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(data)));
+        return {
+          v: 1,
+          alg: "AES-GCM",
+          kdf: "PBKDF2-SHA256",
+          iterations,
+          salt: bufToB64(salt),
+          iv: bufToB64(iv),
+          ciphertext: bufToB64(ct),
+        };
+      }
+
+      async function decryptJson(password, payload) {
+        const dec = new TextDecoder();
+        const salt = new Uint8Array(b64ToBuf(payload.salt));
+        const iv = new Uint8Array(b64ToBuf(payload.iv));
+        const iterations = payload.iterations || 210_000;
+        const key = await deriveAesKey(password, salt, iterations);
+        const ptBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, b64ToBuf(payload.ciphertext));
+        return safeJsonParse(dec.decode(ptBuf), null);
+      }
+
+      function isEncryptedPresent() {
+        return Boolean(localStorage.getItem(ENC_KEY));
+      }
+
+      function loadEncMeta() {
+        return safeJsonParse(localStorage.getItem(ENC_META_KEY), { locked: false });
+      }
+
+      function saveEncMeta(meta) {
+        localStorage.setItem(ENC_META_KEY, JSON.stringify(meta || {}));
+      }
+
+      function loadPlainState() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const state = safeJsonParse(raw, null);
+        if (state && typeof state === "object" && Array.isArray(state.entries)) return state;
+        return defaultState();
+      }
+
+      function savePlainState(next) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }
+
+      async function idbOpen() {
+        return await new Promise((resolve, reject) => {
+          const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(IDB_PHOTO_STORE)) {
+              db.createObjectStore(IDB_PHOTO_STORE, { keyPath: "id" });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function idbPutPhoto(photo) {
+        const db = await idbOpen();
+        try {
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_PHOTO_STORE, "readwrite");
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => reject(tx.error);
+            tx.objectStore(IDB_PHOTO_STORE).put(photo);
+          });
+        } finally {
+          db.close();
+        }
+      }
+
+      async function idbGetPhoto(id) {
+        const db = await idbOpen();
+        try {
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_PHOTO_STORE, "readonly");
+            const req = tx.objectStore(IDB_PHOTO_STORE).get(id);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+          });
+        } finally {
+          db.close();
+        }
+      }
+
+      async function idbDeletePhoto(id) {
+        const db = await idbOpen();
+        try {
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_PHOTO_STORE, "readwrite");
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => reject(tx.error);
+            tx.objectStore(IDB_PHOTO_STORE).delete(id);
+          });
+        } finally {
+          db.close();
+        }
+      }
+
+      function guessImageExt(mime) {
+        if (mime === "image/png") return "png";
+        if (mime === "image/jpeg") return "jpg";
+        if (mime === "image/webp") return "webp";
+        if (mime === "image/gif") return "gif";
+        return "img";
+      }
+
+      function loadTheme() {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === "light" || saved === "dark") return saved;
+        const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)")?.matches;
+        return prefersLight ? "light" : "dark";
+      }
+
+      function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        localStorage.setItem(THEME_KEY, theme);
+      }
+
+      function debounce(fn, ms) {
+        let t = null;
+        return (...args) => {
+          if (t) window.clearTimeout(t);
+          t = window.setTimeout(() => fn(...args), ms);
+        };
+      }
+
+      function clampText(text, max = 80) {
+        const s = String(text || "").replace(/\s+/g, " ").trim();
+        if (!s) return "";
+        return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+      }
+
+      function downloadJson(filename, data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function sortEntries(entries, sortKey) {
+        const arr = [...entries];
+        const by = {
+          "updated-desc": (a, b) => b.updatedAt.localeCompare(a.updatedAt),
+          "created-desc": (a, b) => b.createdAt.localeCompare(a.createdAt),
+          "date-desc": (a, b) => (b.dateISO || "").localeCompare(a.dateISO || ""),
+          "date-asc": (a, b) => (a.dateISO || "").localeCompare(b.dateISO || ""),
+        }[sortKey];
+        return by ? arr.sort(by) : arr;
+      }
+
+      function matchesEntry(entry, q) {
+        if (!q) return true;
+        const hay = [
+          entry.title || "",
+          entry.content || "",
+          (entry.tags || []).join(" "),
+          entry.dateISO || "",
+          entry.mood || "",
+        ]
+          .join("\n")
+          .toLowerCase();
+        return hay.includes(q.toLowerCase());
+      }
+
+      function collectAllTags(entries) {
+        const set = new Set();
+        entries.forEach((e) => (e.tags || []).forEach((t) => set.add(t)));
+        return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+      }
+
+      const yearEl = $("#year");
+      const saveBadge = $("#saveBadge");
+      const sidebar = $("#sidebar");
+      const sidebarToggle = $("#sidebarToggle");
+      const themeToggle = $("#themeToggle");
+      const newEntryBtn = $("#newEntryBtn");
+      const emptyNewBtn = $("#emptyNewBtn");
+      const searchInput = $("#searchInput");
+      const sortSelect = $("#sortSelect");
+      const clearFiltersBtn = $("#clearFiltersBtn");
+      const tagChips = $("#tagChips");
+      const entryList = $("#entryList");
+      const rowTpl = $("#entryRowTemplate");
+
+      const editorInner = $("#editorInner");
+      const emptyState = $("#emptyState");
+      const dateInput = $("#dateInput");
+      const moodSelect = $("#moodSelect");
+      const tagsInput = $("#tagsInput");
+      const titleInput = $("#titleInput");
+      const contentInput = $("#contentInput");
+      const saveBtn = $("#saveBtn");
+      const deleteBtn = $("#deleteBtn");
+      const duplicateBtn = $("#duplicateBtn");
+      const metaText = $("#metaText");
+      const exportBtn = $("#exportBtn");
+      const importInput = $("#importInput");
+      const photoInput = $("#photoInput");
+      const photoGrid = $("#photoGrid");
+      const photoTpl = $("#photoItemTemplate");
+
+      const lockBtn = $("#lockBtn");
+      const lockScreen = $("#lockScreen");
+      const unlockPassword = $("#unlockPassword");
+      const unlockBtn = $("#unlockBtn");
+      const resetAppBtn = $("#resetAppBtn");
+      const lockHint = $("#lockHint");
+      const setPassword1 = $("#setPassword1");
+      const setPassword2 = $("#setPassword2");
+      const setPasswordBtn = $("#setPasswordBtn");
+
+      let state = defaultState();
+      let dirty = false;
+      let lastError = null;
+      let unlockedPassword = null;
+      let locked = false;
+
+      const theme = loadTheme();
+      applyTheme(theme);
+
+      if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+      function setBadge(mode, text) {
+        if (!saveBadge) return;
+        saveBadge.classList.toggle("is-saving", mode === "saving");
+        saveBadge.classList.toggle("is-error", mode === "error");
+        saveBadge.textContent = text;
+      }
+
+      function markDirty(v = true) {
+        dirty = v;
+        if (dirty) setBadge("saving", "저장 중…");
+        else if (lastError) setBadge("error", "저장 실패");
+        else setBadge("saved", "저장됨");
+      }
+
+      const persistSoon = debounce(() => {
+        if (!dirty) return;
+        persistNowAsync();
+      }, 450);
+
+      async function persistNowAsync() {
+        try {
+          if (locked) throw new Error("locked");
+          if (unlockedPassword) {
+            const payload = await encryptJson(unlockedPassword, state);
+            localStorage.setItem(ENC_KEY, JSON.stringify(payload));
+            saveEncMeta({ locked: false, hasPassword: true, updatedAt: nowISO() });
+            localStorage.removeItem(STORAGE_KEY);
+          } else {
+            savePlainState(state);
+          }
+          lastError = null;
+          markDirty(false);
+        } catch (e) {
+          lastError = e;
+          setBadge("error", "저장 실패");
+        }
+      }
+
+      function persistNow() {
+        if (unlockedPassword) {
+          markDirty(true);
+          persistNowAsync();
+          return;
+        }
+        try {
+          if (locked) throw new Error("locked");
+          savePlainState(state);
+          lastError = null;
+          markDirty(false);
+        } catch (e) {
+          lastError = e;
+          setBadge("error", "저장 실패");
+        }
+      }
+
+      function closeSidebar() {
+        sidebar?.classList.remove("is-open");
+      }
+      function toggleSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.toggle("is-open");
+      }
+
+      function getSelectedEntry() {
+        return state.entries.find((e) => e.id === state.selectedId) || null;
+      }
+
+      function upsertEntry(patch) {
+        const idx = state.entries.findIndex((e) => e.id === patch.id);
+        if (idx >= 0) state.entries[idx] = patch;
+        else state.entries.unshift(patch);
+      }
+
+      function createEntry(seed = {}) {
+        const t = nowISO();
+        return {
+          id: uid(),
+          dateISO: seed.dateISO || todayISO(),
+          mood: seed.mood || "🙂",
+          title: seed.title || "",
+          content: seed.content || "",
+          tags: seed.tags || [],
+          photos: seed.photos || [],
+          createdAt: t,
+          updatedAt: t,
+        };
+      }
+
+      function ensureHasEntry() {
+        if (state.entries.length > 0) return;
+        const e = createEntry({ title: "첫 일기", content: "오늘의 기록을 남겨보세요." });
+        state.entries.unshift(e);
+        state.selectedId = e.id;
+        markDirty(true);
+        persistSoon();
+      }
+
+      function selectEntry(id) {
+        state.selectedId = id;
+        markDirty(true);
+        persistSoon();
+        render();
+        if (window.innerWidth <= 980) closeSidebar();
+      }
+
+      function renderTags() {
+        if (!tagChips) return;
+        tagChips.innerHTML = "";
+        const tags = collectAllTags(state.entries);
+        if (tags.length === 0) return;
+
+        const makeChip = (label, active) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = `chip${active ? " is-active" : ""}`;
+          b.textContent = label;
+          b.addEventListener("click", () => {
+            if (label === "전체") state.ui.tag = null;
+            else state.ui.tag = state.ui.tag === label ? null : label;
+            markDirty(true);
+            persistSoon();
+            render();
+          });
+          return b;
+        };
+
+        tagChips.appendChild(makeChip("전체", state.ui.tag == null));
+        tags.forEach((t) => tagChips.appendChild(makeChip(t, state.ui.tag === t)));
+      }
+
+      function renderList() {
+        if (!entryList || !rowTpl) return;
+        entryList.innerHTML = "";
+
+        const q = (state.ui.search || "").trim();
+        const tag = state.ui.tag;
+        const filtered = state.entries
+          .filter((e) => matchesEntry(e, q))
+          .filter((e) => (tag ? (e.tags || []).includes(tag) : true));
+        const sorted = sortEntries(filtered, state.ui.sort || "updated-desc");
+
+        if (sorted.length === 0) {
+          const div = document.createElement("div");
+          div.className = "muted";
+          div.style.padding = "1rem";
+          div.textContent = "검색 결과가 없어요.";
+          entryList.appendChild(div);
+          return;
+        }
+
+        sorted.forEach((e) => {
+          const fragment = rowTpl.content.cloneNode(true);
+          const btn = fragment.querySelector(".entry-row");
+          const dateEl = fragment.querySelector(".entry-row__date");
+          const moodEl = fragment.querySelector(".entry-row__mood");
+          const titleEl = fragment.querySelector(".entry-row__title");
+          const exEl = fragment.querySelector(".entry-row__excerpt");
+          const tagsEl = fragment.querySelector(".entry-row__tags");
+
+          btn.dataset.id = e.id;
+          btn.classList.toggle("is-active", e.id === state.selectedId);
+          dateEl.textContent = formatKoreanDate(e.dateISO);
+          moodEl.textContent = e.mood || "🙂";
+          titleEl.textContent = e.title?.trim() ? e.title : "(제목 없음)";
+          exEl.textContent = clampText(e.content, 64) || "내용이 비어 있어요.";
+
+          (e.tags || []).slice(0, 4).forEach((t) => {
+            const s = document.createElement("span");
+            s.className = "tag";
+            s.textContent = `#${t}`;
+            tagsEl.appendChild(s);
+          });
+          if ((e.tags || []).length > 4) {
+            const s = document.createElement("span");
+            s.className = "tag";
+            s.textContent = `+${(e.tags || []).length - 4}`;
+            tagsEl.appendChild(s);
+          }
+
+          btn.addEventListener("click", () => selectEntry(e.id));
+          entryList.appendChild(fragment);
+        });
+      }
+
+      function renderPhotos() {
+        const e = getSelectedEntry();
+        if (!photoGrid || !photoTpl) return;
+        photoGrid.innerHTML = "";
+        if (!e) return;
+
+        const ids = Array.isArray(e.photos) ? e.photos : [];
+        if (ids.length === 0) return;
+
+        ids.forEach((pid) => {
+          const frag = photoTpl.content.cloneNode(true);
+          const img = frag.querySelector(".photo-item__img");
+          const removeBtn = frag.querySelector(".photo-item__remove");
+
+          img.alt = "첨부 사진";
+          img.src = "";
+
+          (async () => {
+            const rec = await idbGetPhoto(pid);
+            if (!rec?.blob) return;
+            const url = URL.createObjectURL(rec.blob);
+            img.src = url;
+            img.addEventListener(
+              "load",
+              () => {
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+              },
+              { once: true }
+            );
+          })();
+
+          removeBtn.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            await removePhotoFromSelected(pid);
+          });
+
+          photoGrid.appendChild(frag);
+        });
+      }
+
+      function renderEditor() {
+        const e = getSelectedEntry();
+        const has = Boolean(e);
+        if (editorInner) editorInner.hidden = !has;
+        if (emptyState) emptyState.hidden = has;
+        if (!has) return;
+
+        dateInput.value = e.dateISO || todayISO();
+        moodSelect.value = e.mood || "🙂";
+        tagsInput.value = tagsToText(e.tags || []);
+        titleInput.value = e.title || "";
+        contentInput.value = e.content || "";
+        renderPhotos();
+
+        const created = e.createdAt ? new Date(e.createdAt) : null;
+        const updated = e.updatedAt ? new Date(e.updatedAt) : null;
+        metaText.textContent = `작성 ${created ? created.toLocaleString("ko-KR") : "—"} · 수정 ${updated ? updated.toLocaleString("ko-KR") : "—"}`;
+      }
+
+      function renderControls() {
+        if (searchInput) searchInput.value = state.ui.search || "";
+        if (sortSelect) sortSelect.value = state.ui.sort || "updated-desc";
+      }
+
+      function render() {
+        renderControls();
+        renderTags();
+        renderList();
+        renderEditor();
+        if (!dirty && !lastError) setBadge("saved", "저장됨");
+      }
+
+      function updateSelectedFromForm({ touchUpdatedAt = true } = {}) {
+        const e = getSelectedEntry();
+        if (!e) return;
+
+        const next = {
+          ...e,
+          dateISO: dateInput.value || todayISO(),
+          mood: moodSelect.value || "🙂",
+          tags: parseTags(tagsInput.value),
+          title: titleInput.value,
+          content: contentInput.value,
+          photos: Array.isArray(e.photos) ? e.photos : [],
+          updatedAt: touchUpdatedAt ? nowISO() : e.updatedAt,
+        };
+
+        upsertEntry(next);
+        markDirty(true);
+        persistSoon();
+        renderList();
+        renderTags();
+        renderEditor();
+      }
+
+      async function addPhotosToSelected(files) {
+        const e = getSelectedEntry();
+        if (!e) return;
+        const list = Array.from(files || []).filter(Boolean);
+        if (list.length === 0) return;
+
+        const MAX_PER_FILE_MB = 7;
+        const nextIds = [...(Array.isArray(e.photos) ? e.photos : [])];
+
+        for (const file of list) {
+          if (!file.type?.startsWith("image/")) continue;
+          const mb = file.size / (1024 * 1024);
+          if (mb > MAX_PER_FILE_MB) {
+            alert(`"${file.name}" 파일이 너무 커요 (${mb.toFixed(1)}MB). ${MAX_PER_FILE_MB}MB 이하로 줄여주세요.`);
+            continue;
+          }
+
+          const id = uid();
+          const rec = {
+            id,
+            name: file.name || `${id}.${guessImageExt(file.type)}`,
+            type: file.type,
+            createdAt: nowISO(),
+            blob: file,
+          };
+          await idbPutPhoto(rec);
+          nextIds.push(id);
+        }
+
+        const next = { ...e, photos: nextIds, updatedAt: nowISO() };
+        upsertEntry(next);
+        markDirty(true);
+        persistSoon();
+        renderEditor();
+        renderList();
+      }
+
+      async function removePhotoFromSelected(photoId) {
+        const e = getSelectedEntry();
+        if (!e) return;
+        const nextIds = (Array.isArray(e.photos) ? e.photos : []).filter((id) => id !== photoId);
+        const next = { ...e, photos: nextIds, updatedAt: nowISO() };
+        upsertEntry(next);
+        await idbDeletePhoto(photoId);
+        markDirty(true);
+        persistSoon();
+        renderEditor();
+        renderList();
+      }
+
+      function onNewEntry() {
+        const e = createEntry();
+        state.entries.unshift(e);
+        state.selectedId = e.id;
+        markDirty(true);
+        persistSoon();
+        render();
+        titleInput?.focus();
+      }
+
+      function onDelete() {
+        const e = getSelectedEntry();
+        if (!e) return;
+        const ok = confirm("이 일기를 삭제할까요? (되돌릴 수 없어요)");
+        if (!ok) return;
+
+        state.entries = state.entries.filter((x) => x.id !== e.id);
+        if (state.entries.length === 0) state.selectedId = null;
+        else state.selectedId = state.entries[0].id;
+        markDirty(true);
+        persistSoon();
+        render();
+      }
+
+      function onDuplicate() {
+        const e = getSelectedEntry();
+        if (!e) return;
+        const copy = createEntry({
+          dateISO: e.dateISO,
+          mood: e.mood,
+          title: e.title ? `${e.title} (복사본)` : "",
+          content: e.content,
+          tags: [...(e.tags || [])],
+        });
+        state.entries.unshift(copy);
+        state.selectedId = copy.id;
+        markDirty(true);
+        persistSoon();
+        render();
+      }
+
+      function onExport() {
+        const payload = { version: 1, exportedAt: nowISO(), entries: state.entries };
+        const filename = `my-diary-${todayISO()}.json`;
+        downloadJson(filename, payload);
+      }
+
+      async function onImport(file) {
+        const text = await file.text();
+        const data = safeJsonParse(text, null);
+        if (!data || typeof data !== "object") {
+          alert("가져오기 실패: JSON을 읽을 수 없어요.");
+          return;
+        }
+
+        const entries = Array.isArray(data.entries) ? data.entries : Array.isArray(data) ? data : null;
+        if (!entries) {
+          alert("가져오기 실패: entries 형식이 아니에요.");
+          return;
+        }
+
+        const normalized = entries
+          .map((e) => {
+            if (!e || typeof e !== "object") return null;
+            const t = nowISO();
+            return {
+              id: typeof e.id === "string" ? e.id : uid(),
+              dateISO: typeof e.dateISO === "string" ? e.dateISO : todayISO(),
+              mood: typeof e.mood === "string" ? e.mood : "🙂",
+              title: typeof e.title === "string" ? e.title : "",
+              content: typeof e.content === "string" ? e.content : "",
+              tags: Array.isArray(e.tags) ? e.tags.filter((x) => typeof x === "string") : [],
+              photos: Array.isArray(e.photos) ? e.photos.filter((x) => typeof x === "string") : [],
+              createdAt: typeof e.createdAt === "string" ? e.createdAt : t,
+              updatedAt: typeof e.updatedAt === "string" ? e.updatedAt : t,
+            };
+          })
+          .filter(Boolean);
+
+        const ok = confirm(
+          `가져온 ${normalized.length}개의 일기를 기존 데이터에 합칠까요?\n(취소를 누르면 기존 데이터를 덮어씁니다)`
+        );
+        if (ok) {
+          const map = new Map(state.entries.map((e) => [e.id, e]));
+          normalized.forEach((e) => map.set(e.id, e));
+          state.entries = Array.from(map.values());
+        } else {
+          state.entries = normalized;
+        }
+        state.selectedId = state.entries[0]?.id ?? null;
+        markDirty(true);
+        persistSoon();
+        render();
+      }
+
+      function onClearFilters() {
+        state.ui.search = "";
+        state.ui.tag = null;
+        state.ui.sort = "updated-desc";
+        markDirty(true);
+        persistSoon();
+        render();
+      }
+
+      sidebarToggle?.addEventListener("click", toggleSidebar);
+
+      themeToggle?.addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+        applyTheme(next);
+      });
+
+      newEntryBtn?.addEventListener("click", onNewEntry);
+      emptyNewBtn?.addEventListener("click", onNewEntry);
+
+      searchInput?.addEventListener("input", (e) => {
+        state.ui.search = e.target.value;
+        markDirty(true);
+        persistSoon();
+        renderList();
+      });
+
+      sortSelect?.addEventListener("change", (e) => {
+        state.ui.sort = e.target.value;
+        markDirty(true);
+        persistSoon();
+        renderList();
+      });
+
+      clearFiltersBtn?.addEventListener("click", onClearFilters);
+
+      [dateInput, moodSelect, tagsInput, titleInput, contentInput].forEach((el) => {
+        el?.addEventListener("input", () => updateSelectedFromForm());
+      });
+
+      saveBtn?.addEventListener("click", () => {
+        updateSelectedFromForm();
+        persistNowAsync();
+      });
+
+      deleteBtn?.addEventListener("click", onDelete);
+      duplicateBtn?.addEventListener("click", onDuplicate);
+
+      exportBtn?.addEventListener("click", onExport);
+      importInput?.addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await onImport(file);
+        e.target.value = "";
+      });
+
+      window.addEventListener("beforeunload", (e) => {
+        if (!dirty) return;
+        e.preventDefault();
+        e.returnValue = "";
+      });
+
+      photoInput?.addEventListener("change", async (e) => {
+        const files = e.target.files;
+        await addPhotosToSelected(files);
+        e.target.value = "";
+      });
+
+      function showLockScreen(show) {
+        locked = show;
+        if (lockScreen) lockScreen.hidden = !show;
+        const appRoot = $("#appRoot");
+        appRoot?.toggleAttribute("inert", show);
+        document.body.style.overflow = show ? "hidden" : "";
+        if (show) unlockPassword?.focus();
+      }
+
+      async function unlockWithPassword(pw) {
+        const raw = localStorage.getItem(ENC_KEY);
+        if (!raw) return false;
+        const payload = safeJsonParse(raw, null);
+        if (!payload) return false;
+        for (const candidate of passwordCandidates(pw)) {
+          try {
+            const decrypted = await decryptJson(candidate, payload);
+            if (!decrypted || !Array.isArray(decrypted.entries)) continue;
+            state = decrypted;
+            unlockedPassword = candidate;
+            saveEncMeta({ ...(loadEncMeta() || {}), locked: false, hasPassword: true, unlockedAt: nowISO() });
+            showLockScreen(false);
+            render();
+            return true;
+          } catch {
+            // 다음 후보로 계속 시도
+          }
+        }
+        return false;
+      }
+
+      async function setPassword(pw) {
+        pw = canonicalizePassword(pw);
+        unlockedPassword = pw;
+        await persistNowAsync();
+        alert("비밀번호가 설정되었습니다. 이제부터 일기장은 암호화되어 저장됩니다.");
+      }
+
+      function lockNow() {
+        if (!isEncryptedPresent()) {
+          alert("아직 비밀번호가 설정되지 않았어요. 잠금 화면에서 먼저 비밀번호를 설정하세요.");
+          showLockScreen(true);
+          return;
+        }
+        unlockedPassword = null;
+        state = defaultState();
+        showLockScreen(true);
+      }
+
+      lockBtn?.addEventListener("click", lockNow);
+      unlockBtn?.addEventListener("click", async () => {
+        const pw = String(unlockPassword?.value || "");
+        if (!pw) return;
+        setBadge("saving", "잠금 해제 중…");
+        try {
+          const ok = await unlockWithPassword(pw);
+          if (!ok) alert("비밀번호가 올바르지 않아요.");
+        } catch {
+          alert("비밀번호가 올바르지 않아요.");
+        } finally {
+          setBadge("saved", "저장됨");
+        }
+      });
+
+      unlockPassword?.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") unlockBtn?.click();
+      });
+
+      setPasswordBtn?.addEventListener("click", async () => {
+        const p1 = setPassword1?.value || "";
+        const p2 = setPassword2?.value || "";
+        if (p1.length < 4) {
+          alert("비밀번호는 4글자 이상으로 설정해주세요.");
+          return;
+        }
+        if (p1 !== p2) {
+          alert("비밀번호 확인이 일치하지 않아요.");
+          return;
+        }
+        await setPassword(p1);
+        setPassword1.value = "";
+        setPassword2.value = "";
+      });
+
+      resetAppBtn?.addEventListener("click", async () => {
+        const ok = confirm("정말 초기화할까요?\n암호를 모르면 데이터는 복구할 수 없어요.");
+        if (!ok) return;
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(ENC_KEY);
+        localStorage.removeItem(ENC_META_KEY);
+        indexedDB.deleteDatabase(IDB_NAME);
+        unlockedPassword = null;
+        state = defaultState();
+        markDirty(false);
+        ensureHasEntry();
+        showLockScreen(false);
+        render();
+      });
+
+      (async () => {
+        if (isEncryptedPresent()) {
+          lockHint.textContent = "비밀번호를 입력해 잠금을 해제하세요.";
+          showLockScreen(true);
+        } else {
+          state = loadPlainState();
+          ensureHasEntry();
+          if (!state.selectedId && state.entries[0]) state.selectedId = state.entries[0].id;
+          render();
+          lockHint.textContent = "처음이라면 아래에서 비밀번호를 설정하세요.";
+        }
+
+        if ("serviceWorker" in navigator) {
+          try {
+            await navigator.serviceWorker.register("./sw.js");
+          } catch {
+            // ignore
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>
